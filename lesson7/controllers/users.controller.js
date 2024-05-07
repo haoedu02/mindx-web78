@@ -11,8 +11,6 @@ export const registerController = async (req, res, next) => {
 
 export const loginController = async (req, res, next) => {
   try {
-    const { password } = req.body;
-    await userService.login(req.user, password);
     return res.json({
       message: "Login Successfully",
     });

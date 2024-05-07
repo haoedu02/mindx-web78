@@ -10,12 +10,9 @@ class UserService {
     const hashPassword = bcrypt.hashSync(password, salt);
     await UsersModel.create({ email, password: hashPassword });
   }
-  async login(user, password) {
-    const hashPassword = user.password;
-    const match = await bcrypt.compare(password, hashPassword);
-    if (!match) {
-      throw new Error("Your password is invalid");
-    }
+  async login(userId) {
+    // Sinh ra access Token
+    return "Login successfully";
   }
   async getMe(id) {
     const user = await UsersModel.findOne({ _id: id });

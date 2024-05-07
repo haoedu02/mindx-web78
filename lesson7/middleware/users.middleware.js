@@ -2,6 +2,7 @@ import UsersModel from "../models/users.models.js";
 import { checkSchema } from "express-validator";
 import { validator } from "../utils/validator.js";
 import { USER_MESSAGE } from "../constants/messages.js";
+import bcrypt from "bcrypt";
 
 export const registerValidator = validator(
   checkSchema(
@@ -35,44 +36,36 @@ export const registerValidator = validator(
   )
 );
 
-// try {
-//   const { email, password, confirm_password } = req.body;
-//   const validateEmailRegex =
-//     /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
-//   if (password !== confirm_password) {
-//     throw new Error("Your password is invalid");
-//   }
-//   if (!validateEmailRegex.test(email)) {
-//     throw new Error("Your email is invalid");
-//   }
-//   //   check is user exist
-//   const isUserExist = await UsersModel.findOne({ email });
-//   if (!isUserExist) {
-//     // tien hanh tao user
-//     next();
-//   } else {
-//     throw new Error("User is already exist");
-//   }
-// } catch (error) {
-//   next(error);
-// }
-
-export const loginValidator = async (req, res, next) => {
-  try {
-    const { email } = req.body;
-    const validateEmailRegex =
-      /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
-
-    if (!validateEmailRegex.test(email)) {
-      throw new Error("Your email is invalid");
-    }
-    const user = await UsersModel.findOne({ email });
-    if (!user) {
-      throw new Error("User does not exist");
-    }
-    req.user = user;
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
+export const loginValidator = validator(
+  checkSchema(
+    {
+      password: {
+        trim: true,
+        isLength: {
+          options: { min: 8 },
+          errorMessage: "Password must be at least 8 characters",
+        },
+        custom: {
+          options: async (_, { req }) => {
+            const { email, password } = req.body;
+            const user = await UsersModel.findOne({ email });
+            if (!user) {
+              throw new Error(USER_MESSAGE.USER_DOES_NOT_EXIST);
+            }
+            const hashPassword = user.password;
+            const match = await bcrypt.compare(password, hashPassword);
+            if (!match) {
+              throw new Error(USER_MESSAGE.YOUR_PASSWORD_IS_INVALID);
+            }
+            req.user = user;
+          },
+        },
+      },
+      email: {
+        isEmail: true,
+        errorMessage: USER_MESSAGE.YOUR_EMAIL_IS_INVALID,
+      },
+    },
+    ["body"]
+  )
+);
